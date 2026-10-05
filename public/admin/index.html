@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LunasTech Admin</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"></head>
+<body><div class="shell">
+<aside class="side"><b>LunasTech Admin</b><span id="nav" style="display:contents"></span><button class="ghost sm" onclick="API.logout()">Log out</button></aside>
+<main class="wide" id="view"></main></div>
+<script src="/js/api.js"></script>
+<script>
+const me = API.guard('admin');
+const view = $('#view');
+const SEV = ['low', 'medium', 'high'];
+const S = {
+  categories: { t: 'Categories', ep: '/admin/categories', f: [['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r) => r.description },
+  devices: { t: 'Devices', ep: '/admin/devices', f: [['category_id', 'Category', 'cat'], ['brand', 'Brand'], ['model', 'Model']], show: (r) => r.brand + ' ' + r.model, sub: (r, m) => m.cat[r.category_id] },
+  symptoms: { t: 'Symptoms', ep: '/admin/symptoms', f: [['category_id', 'Category (none = all devices)', 'cat'], ['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r, m) => m.cat[r.category_id] || 'All devices' },
+  rules: { t: 'Rules', ep: '/admin/rules', f: [['symptom_id', 'Symptom', 'sym'], ['area_of_concern', 'Area of concern'], ['severity', 'Severity', 'sev'], ['next_steps', 'Next steps', 'long'], ['priority', 'Priority', 'num']], show: (r) => r.area_of_concern, sub: (r, m) => 'For: ' + m.sym[r.symptom_id], pill: (r) => r.severity },
+  guides: { t: 'Guides', ep: '/admin/guides', pub: 1, show: (r) => r.title, sub: (r) => `${r.category}, ${r.step_count} steps` },
+  simulations: { t: 'Simulations', ep: '/admin/simulations', pub: 1, show: (r) => r.title, sub: (r) => `${r.step_count} steps` }
+};
+const items = [['overview', 'Overview'], ['users', 'Users'], ...Object.entries(S).map(([k, v]) => [k, v.t])];
+$('#nav').innerHTML = items.map(([k, l]) => `<a href="#${k}" data-k="${k}">${l}</a>`).join('');
+
+async function route() {
+  const k = location.hash.slice(1) || 'overview';
+  document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.k === k));
+  view.innerHTML = '<p class="muted">Loading...</p>';
+  try { await (k === 'users' ? users : S[k] ? manage(k) : overview)(); }
+  catch (e) { view.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+addEventListener('hashchange', route);
+if (me) route();
+
+async function overview() {
+  const s = await API.req('/admin/stats');
+  const stat = (n, l) => `<div class="card"><span class="stat">${n}</span><br><span class="muted">${l}</span></div>`;
+  view.innerHTML = `<h1>Overview</h1><div class="grid">
+    ${stat(s.users.customers, 'customers')}${stat(s.content.guides, 'guides')}${stat(s.content.simulations, 'simulations')}
+    ${stat(s.activity.assessments, 'diagnoses')}${stat(s.activity.completed_attempts + ' / ' + s.activity.attempts, 'simulations completed')}</div>
+    <h3>Simulation performance</h3><div class="card">${s.simulation_performance.map((x) => `<div class="row"><div>${esc(x.title)}</div><span class="muted">${x.attempts} attempts, ${x.completed || 0} completed</span><b>${x.avg_percentage ?? '-'}%</b></div>`).join('') || '<p class="muted">No data yet.</p>'}</div>
+    <h3>Learner levels</h3><div class="card">${s.level_distribution.map((x) => `<div class="row"><div>${esc(x.level)}</div><b>${x.users}</b></div>`).join('') || '<p class="muted">No learners have progress yet.</p>'}</div>`;
+}
+
+async function users() {
+  const list = await API.req('/admin/users');
+  view.innerHTML = `<h1>Users</h1>
+  <form class="card" id="nu"><h2>Add user</h2><div class="grid">
+    <label>Full name<input name="full_name" required></label><label>Email<input type="email" name="email" required></label>
+    <label>Password<input type="password" name="password" minlength="8" required></label>
+    <label>Role<select name="role"><option value="customer">Customer</option><option value="admin">Admin</option></select></label></div>
+    <p class="err" id="msg" role="alert"></p><button class="btn">Add user</button></form>
+  <div class="card">${list.map((u) => `<div class="row"><div><b>${esc(u.full_name)}</b><br><span class="muted">${esc(u.email)}, ${esc(u.level)}, ${u.total_points} pts</span></div>
+    <select data-id="${u.id}" data-f="role" ${u.id === me.id ? 'disabled' : ''}><option ${u.role === 'customer' ? 'selected' : ''}>customer</option><option ${u.role === 'admin' ? 'selected' : ''}>admin</option></select>
+    <button class="ghost sm" data-id="${u.id}" data-st="${u.status === 'active' ? 'disabled' : 'active'}" ${u.id === me.id ? 'disabled' : ''}>${u.status === 'active' ? 'Disable' : 'Enable'}</button></div>`).join('')}</div>`;
+  $('#nu').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await API.req('/admin/users', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); users(); }
+    catch (err) { $('#msg').textContent = err.message; }
+  };
+  view.querySelectorAll('select[data-f]').forEach((s) => (s.onchange = async () => { await API.req('/admin/users/' + s.dataset.id, { method: 'PATCH', body: { role: s.value } }); users(); }));
+  view.querySelectorAll('button[data-st]').forEach((b) => (b.onclick = async () => { await API.req('/admin/users/' + b.dataset.id, { method: 'PATCH', body: { status: b.dataset.st } }); users(); }));
+}
+
+async function manage(k) {
+  const c = S[k];
+  const [rows, cats, syms] = await Promise.all([API.req(c.ep), API.req('/admin/categories'), API.req('/admin/symptoms')]);
+  const m = { cat: Object.fromEntries(cats.map((x) => [x.id, x.name])), sym: Object.fromEntries(syms.map((x) => [x.id, x.name])) };
+  const opts = (arr, none) => (none ? '<option value="">None</option>' : '') + arr.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  const field = ([n, l, t]) => `<label>${l}` + (
+    t === 'cat' ? `<select name="${n}">${opts(cats, n !== 'category_id' || k === 'symptoms')}</select>` :
+    t === 'sym' ? `<select name="${n}">${opts(syms)}</select>` :
+    t === 'sev' ? `<select name="${n}">${SEV.map((s) => `<option>${s}</option>`).join('')}</select>` :
+    t === 'long' ? `<textarea name="${n}" rows="3"></textarea>` :
+    `<input name="${n}" ${t === 'num' ? 'type="number" min="1"' : ''}>`) + '</label>';
+  view.innerHTML = `<h1>${c.t}</h1>
+    ${c.f ? `<form class="card" id="nf"><h2>Add new</h2><div class="grid">${c.f.map(field).join('')}</div><p class="err" id="msg" role="alert"></p><button class="btn">Add</button></form>` : '<p class="muted">Create guides and simulations by sending steps to the admin API. A visual editor comes next.</p>'}
+    <div class="card">${rows.map((r) => `<div class="row"><div><b>${esc(c.show(r))}</b><br><span class="muted">${esc(c.sub(r, m) || '')}</span></div>
+      ${c.pill ? `<span class="pill ${c.pill(r)}">${c.pill(r)}</span>` : ''}
+      ${c.pub ? `<button class="ghost sm" data-pub="${r.id}">${r.is_published ? 'Unpublish' : 'Publish'}</button>` : ''}
+      <button class="ghost sm" data-del="${r.id}">Delete</button></div>`).join('') || '<p class="muted">Nothing here yet.</p>'}</div>`;
+  const form = $('#nf');
+  if (form) form.onsubmit = async (e) => {
+    e.preventDefault();
+    const body = {};
+    for (const [n, v] of new FormData(form)) if (v !== '') body[n] = /_id$|^priority$/.test(n) ? Number(v) : v;
+    try { await API.req(c.ep, { method: 'POST', body }); manage(k); } catch (err) { $('#msg').textContent = err.message; }
+  };
+  view.querySelectorAll('[data-del]').forEach((b) => (b.onclick = async () => {
+    if (!confirm('Delete this item? Related items may be removed too.')) return;
+    try { await API.req(`${c.ep}/${b.dataset.del}`, { method: 'DELETE' }); manage(k); } catch (err) { alert(err.message); }
+  }));
+  view.querySelectorAll('[data-pub]').forEach((b) => (b.onclick = async () => {
+    const r = rows.find((x) => x.id == b.dataset.pub);
+    await API.req(`${c.ep}/${r.id}`, { method: 'PUT', body: { is_published: r.is_published ? 0 : 1 } }); manage(k);
+  }));
+}
+</script></body></html>

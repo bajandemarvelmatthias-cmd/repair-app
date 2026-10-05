@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign up - LunasTech</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"><link rel="stylesheet" href="/css/auth.css"></head>
+<body class="au"><div class="split">
+  <section class="brandp">
+    <div class="btop">
+      <a class="logo" href="/" aria-label="LunasTech home"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l8.5-8.5"/><path d="M12.5 11.5 10.5 9.5l4-4 3-.5.5 3-4 4z"/></svg></span><span class="wd">LunasTech</span></a>
+      <span class="badge"><i></i>Learning prototype</span>
+    </div>
+    <div class="bmid">
+      <p class="ey">Learn it. Fix it. Keep it.</p>
+      <h1>Repair confidence starts with <span>curiosity.</span></h1>
+      <p class="lead">Explore guided repairs, practice safely, and make smarter decisions about the devices you use every day.</p>
+      <div class="feat">
+        <div class="f wide"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/></svg></span><div><b>Step-by-step guides</b><span class="d">Clear instructions for every skill level</span></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span></div>
+        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg></span><div><b>Safe simulations</b><span class="d">Practice before picking up a tool</span></div></div>
+        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg></span><div><b>Smart diagnosis</b><span class="d">Start with symptoms, not guesses</span></div></div>
+      </div>
+    </div>
+    <p class="bnote">Built for curious minds and a more repairable world.</p>
+  </section>
+  <main class="formp"><div class="fc">
+    <p class="ey">Join LunasTech</p>
+    <h2>Start your repair journey.</h2>
+    <p class="sub">Create a customer account and start building practical skills.</p>
+    <nav class="tabs" aria-label="Account"><a href="/login.html">Log in</a><a href="/signup.html" aria-current="page">Sign up</a></nav>
+    <form id="f" novalidate>
+      <label class="fld">Full name<input type="text" name="full_name" placeholder="e.g. Jamie Santos" autocomplete="name" required><span class="fe" data-e="full_name"></span></label>
+      <label class="fld">Email address<input type="email" name="email" placeholder="you@example.com" autocomplete="email" required><span class="fe" data-e="email"></span></label>
+      <label class="fld">Password<input type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" required><span class="fe" data-e="password"></span></label>
+      <label class="fld">Confirm password<input type="password" name="confirm_password" placeholder="Enter your password again" autocomplete="new-password" required><span class="fe" data-e="confirm_password"></span></label>
+      <p class="alert" id="msg" role="alert"></p>
+      <button class="sub2" id="go" type="submit"><span>Create my account</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+    </form>
+    <p class="legal">By continuing, you agree to use LunasTech for educational purposes and follow all repair safety guidance.</p>
+  </div></main>
+</div>
+<script src="/js/api.js"></script>
+<script>
+const btn = $('#go'), label = btn.querySelector('span');
+$('#f').onsubmit = async (e) => {
+  e.preventDefault();
+  document.querySelectorAll('[data-e]').forEach((s) => (s.textContent = ''));
+  document.querySelectorAll('#f input').forEach((i) => i.removeAttribute('aria-invalid'));
+  $('#msg').textContent = '';
+  btn.disabled = true; label.textContent = 'Creating account...';
+  try {
+    const d = await API.req('/auth/register', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) });
+    API.save(d); location.href = d.redirect;
+  } catch (err) {
+    Object.entries(err.details || {}).forEach(([k, v]) => {
+      const s = $(`[data-e="${k}"]`); if (s) s.textContent = v;
+      const i = e.target.elements[k]; if (i) i.setAttribute('aria-invalid', 'true');
+    });
+    $('#msg').textContent = err.details ? '' : err.message;
+    btn.disabled = false; label.textContent = 'Create my account';
+  }
+};
+</script></body></html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LunasTech Repair Guides</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/cms.css"></head>
+<body>
+<header class="pub-top"><div class="pub-in"><a class="logo" href="#/">LunasTech</a>
+  <form id="sf" role="search"><input id="sq" type="search" placeholder="Search devices, brands, repairs… (e.g. iPhone battery)" aria-label="Search" autocomplete="off"></form>
+  <a href="/login.html" class="muted">Log in</a></div></header>
+<main class="pub" id="app"></main>
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const app = $('#app');
+const get = async (p) => { const r = await fetch('/api/public' + p); const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.error || 'Something went wrong.'); e.status = r.status; throw e; } return d; };
+const img = (u, fb, cls = '') => `<div class="im ${cls}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : fb}</div>`;
+const DIFF = { easy: 'Easy', moderate: 'Moderate', difficult: 'Difficult' };
+const crumbs = (list) => `<nav class="crumbs" aria-label="Breadcrumb">${list.map(([l, h]) => (h ? `<a href="${h}">${esc(l)}</a>` : esc(l))).join(' › ')}</nav>`;
+const empty = (m) => `<div class="empty">${esc(m)}</div>`;
+
+const views = {
+  async home() {
+    const cats = await get('/categories');
+    app.innerHTML = `<div class="hero"><h1>What do you need to fix?</h1><p>Pick a device type to find step-by-step repair guides.</p></div>
+      <div class="cards">${cats.map((c) => `<a class="pc" href="#/c/${esc(c.slug)}">${img(c.image, '🛠')}<div class="bd"><b>${esc(c.name)}</b><span>${esc(c.description || '')}</span></div></a>`).join('')}</div>${cats.length ? '' : empty('No categories are published yet.')}`;
+  },
+  async category(slug) {
+    const c = await get('/categories/' + encodeURIComponent(slug));
+    app.innerHTML = `${crumbs([['Repair Guides', '#/'], [c.name]])}<h1>${esc(c.name)}</h1><p class="muted">Select a brand</p>
+      <div class="cards">${c.brands.map((b) => `<a class="pc" href="#/c/${esc(c.slug)}/b/${esc(b.slug)}">${img(b.logo, esc(b.name[0]), 'contain')}<div class="bd"><b>${esc(b.name)}</b></div></a>`).join('')}</div>${c.brands.length ? '' : empty('No brands are available in this category yet.')}`;
+  },
+  async brand(cat, brand) {
+    const b = await get(`/categories/${encodeURIComponent(cat)}/brands/${encodeURIComponent(brand)}`);
+    app.innerHTML = `${crumbs([['Repair Guides', '#/'], [b.category, '#/c/' + b.category_slug], [b.name]])}<h1>${esc(b.name)}</h1><p class="muted">Select your device</p>
+      <div class="cards">${b.devices.map((d) => `<a class="pc" href="#/device/${d.id}">${img(d.image, '📱', 'contain')}<div class="bd"><b>${esc(d.name)}</b><span>${[d.model_number, d.release_year].filter(Boolean).map(esc).join(' · ')}</span></div></a>`).join('')}</div>${b.devices.length ? '' : empty('No devices are available for this brand yet.')}`;
+  },
+  async device(id) {
+    const d = await get('/devices/' + id);
+    const specs = Object.entries(d.specs || {});
+    app.innerHTML = `${crumbs([['Repair Guides', '#/'], [d.category, '#/c/' + d.category_slug], [d.brand, `#/c/${d.category_slug}/b/${d.brand_slug}`], [d.name]])}
+      <div class="two"><div><h1>${esc(d.name)} Repair</h1><p>${esc(d.description || '')}</p>${specs.length ? `<p class="muted">${specs.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join(' · ')}</p>` : ''}</div>
+      ${d.image ? `<div class="card" style="text-align:center"><img src="${esc(d.image)}" alt="${esc(d.name)}" style="max-width:100%;max-height:240px;object-fit:contain"></div>` : ''}</div>
+      <h2>Choose a repair</h2><div class="cards">${d.guides.map((g) => `<a class="pc" href="#/guide/${g.id}">${img(g.cover_image, '🔧')}<div class="bd"><b>${esc(g.title)}</b><span>${esc(g.short_description || '')}</span><div class="meta"><span class="pill ${esc(g.difficulty)}">${DIFF[g.difficulty] || ''}</span>${g.estimated_minutes ? `<span class="pill">${g.estimated_minutes} min</span>` : ''}</div></div></a>`).join('')}</div>${d.guides.length ? '' : empty('No repair guides are published for this device yet.')}`;
+  },
+  async guide(id) {
+    const g = await get('/guides/' + id);
+    const list = (items, title) => items.length ? `<div><h2>${title}</h2><div class="list">${items.map((x) => `<div class="li">${x.image ? `<img src="${esc(x.image)}" alt="">` : ''}<div style="flex:1"><b>${esc(x.name)}</b><div class="muted">${esc(x.description || x.part_type || '')}</div></div>${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">View</a>` : ''}</div>`).join('')}</div></div>` : '';
+    app.innerHTML = `${crumbs([['Repair Guides', '#/'], [g.device, '#/device/' + g.device_id], [g.title]])}
+      <h1>${esc(g.title)}</h1><p>${esc(g.short_description || '')}</p><div class="meta"><span class="pill ${esc(g.difficulty)}">${DIFF[g.difficulty]}</span>${g.estimated_minutes ? `<span class="pill">⏱ ${g.estimated_minutes} min</span>` : ''}<span class="pill">${esc(g.brand)} ${esc(g.device)}</span></div>
+      ${g.cover_image ? `<img src="${esc(g.cover_image)}" alt="" style="max-width:100%;max-height:340px;border-radius:16px;margin:8px 0">` : ''}
+      <div class="two">${list(g.tools, 'Tools you need')}${list(g.parts, 'Parts you need')}</div>
+      <h2 style="margin-top:20px">Steps</h2>${g.steps.map((s) => `<section class="pstep" id="step${s.step_number}"><div class="sh"><span class="n">${s.step_number}</span><h3 style="margin:0">${esc(s.title)}</h3></div>
+        ${s.warning ? `<div class="note w"><b>Warning:</b> ${esc(s.warning)}</div>` : ''}<p style="white-space:pre-line">${esc(s.instructions || '')}</p>
+        ${s.images.map((u) => `<img src="${esc(u)}" alt="Step ${s.step_number}" loading="lazy">`).join('')}${s.video ? `<video src="${esc(s.video)}" controls preload="metadata"></video>` : ''}
+        ${s.tip ? `<div class="note t"><b>Tip:</b> ${esc(s.tip)}</div>` : ''}
+        ${s.tools.length || s.parts.length ? `<div class="muted">${[...s.tools.map((t) => '🔧 ' + t.name), ...s.parts.map((p) => '🧩 ' + p.name)].map(esc).join(' · ')}</div>` : ''}</section>`).join('') || empty('This guide has no steps yet.')}`;
+  },
+  async search(q) {
+    const r = await get('/search?q=' + encodeURIComponent(q));
+    const total = r.devices.length + r.brands.length + r.guides.length;
+    app.innerHTML = `${crumbs([['Repair Guides', '#/'], ['Search']])}<h1>Search results for “${esc(q)}”</h1>${total ? '' : empty('Nothing found. Try a different word, like a brand or a part name.')}
+      ${r.guides.length ? `<h2>Repair guides</h2><div class="list">${r.guides.map((g) => `<a class="li" href="#/guide/${g.id}" style="text-decoration:none;color:inherit"><div><b>${esc(g.title)}</b><div class="muted">${esc(g.device)}</div></div></a>`).join('')}</div>` : ''}
+      ${r.devices.length ? `<h2>Devices</h2><div class="list">${r.devices.map((d) => `<a class="li" href="#/device/${d.id}" style="text-decoration:none;color:inherit">${d.image ? `<img src="${esc(d.image)}" alt="">` : ''}<div><b>${esc(d.name)}</b><div class="muted">${esc(d.brand)}</div></div></a>`).join('')}</div>` : ''}
+      ${r.brands.length ? `<h2>Brands</h2><div class="list">${r.brands.map((b) => `<a class="li" href="#/c/${esc(b.category_slug)}/b/${esc(b.slug)}" style="text-decoration:none;color:inherit"><div><b>${esc(b.name)}</b><div class="muted">${esc(b.category)}</div></div></a>`).join('')}</div>` : ''}`;
+  }
+};
+async function route() {
+  const h = location.hash.replace(/^#\/?/, ''); const [path, qs = ''] = h.split('?'); const p = path.split('/').filter(Boolean).map(decodeURIComponent);
+  app.innerHTML = '<p class="muted">Loading…</p>'; window.scrollTo(0, 0);
+  try {
+    if (!p.length) await views.home();
+    else if (p[0] === 'c' && p[2] === 'b') await views.brand(p[1], p[3]);
+    else if (p[0] === 'c') await views.category(p[1]);
+    else if (p[0] === 'device') await views.device(p[1]);
+    else if (p[0] === 'guide') await views.guide(p[1]);
+    else if (p[0] === 'search') await views.search(new URLSearchParams(qs).get('q') || '');
+    else await views.home();
+  } catch (e) { app.innerHTML = `<div class="empty">${e.status === 404 ? 'This page is not available.' : esc(e.message)}<p><a href="#/">Back to start</a></p></div>`; }
+}
+$('#sf').onsubmit = (e) => { e.preventDefault(); const q = $('#sq').value.trim(); if (q) location.hash = '#/search?q=' + encodeURIComponent(q); };
+window.addEventListener('hashchange', route); route();
+</script>
+</body></html>

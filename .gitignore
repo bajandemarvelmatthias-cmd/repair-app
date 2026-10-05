@@ -1,0 +1,5 @@
+node_modules/
+db/repair.db*
+.env
+db/
+uploads/

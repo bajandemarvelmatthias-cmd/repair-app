@@ -1,0 +1,78 @@
+/* LunasTech login / sign up (split screen). Loaded after app.css */
+body.au{margin:0;background:#fbfcfa;color:#293e34;font-family:"DM Sans","Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.au *{box-sizing:border-box}
+.split{display:grid;grid-template-columns:minmax(0,1.155fr) minmax(0,1fr);min-height:100vh}
+
+/* ---------- brand panel ---------- */
+.brandp{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:32px;padding:44px clamp(32px,4.4vw,76px) 36px;color:#fff;overflow:hidden;
+  background:radial-gradient(circle at 80% 14%,#2e6a54 0,rgba(46,106,84,0) 46%),linear-gradient(160deg,#174035 0%,#1b4e3f 52%,#123a30 100%)}
+.brandp::before,.brandp::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.brandp::before{right:-26%;bottom:-46%;width:78%;aspect-ratio:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04)}
+.brandp::after{right:-8%;bottom:-62%;width:56%;aspect-ratio:1;background:rgba(10,40,31,.35);border:1px solid rgba(255,255,255,.05)}
+.brandp>*{position:relative;z-index:1}
+.btop{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+.logo .mk{display:grid;place-items:center;width:48px;height:48px;border-radius:13px;background:#f1f7f2;color:#1c7054}
+.logo .mk svg{width:27px;height:27px}
+.logo .wd{font-size:2rem;font-weight:700;letter-spacing:-.04em}
+.badge{display:inline-flex;align-items:center;gap:9px;padding:9px 18px;border:1px solid #316856;border-radius:99px;background:rgba(62,117,97,.45);color:#d4e6dc;font-size:.7rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.badge i{width:7px;height:7px;border-radius:50%;background:#a8d6b6}
+.bmid{max-width:640px}
+.bmid .ey{margin:0 0 22px;color:#accbbb;font-size:.72rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.bmid h1{margin:0 0 24px;font-size:clamp(2.3rem,4.2vw,4.6rem);font-weight:600;line-height:1.02;letter-spacing:-.05em;color:#fff}
+.bmid h1 span{color:#a8d6b6}
+.bmid .lead{max-width:30em;margin:0 0 36px;color:#c6d9cf;font-size:1.05rem;line-height:1.75}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px}
+.f{display:flex;align-items:center;gap:16px;padding:20px 22px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.07)}
+.f.wide{grid-column:1/-1}
+.f .ic{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,.1);color:#d9e9e0}
+.f .ic svg{width:26px;height:26px}
+.f b{display:block;font-size:.95rem;font-weight:600}
+.f span.d{display:block;margin-top:3px;color:#b6cfc3;font-size:.8rem}
+.f .go{margin-left:auto;width:22px;height:22px;color:#b6cfc3}
+.bnote{margin:0;color:#a9c4b7;font-size:.8rem}
+
+/* ---------- form panel ---------- */
+.formp{display:flex;align-items:center;justify-content:center;padding:48px clamp(24px,5vw,80px)}
+.fc{width:100%;max-width:480px}
+.fc .ey{margin:0 0 18px;color:#55816a;font-size:.72rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+.fc h2{margin:0 0 12px;font-size:clamp(1.9rem,2.7vw,2.9rem);font-weight:500;letter-spacing:-.045em;line-height:1.1;color:#293e34}
+.fc .sub{margin:0 0 34px;color:#7e8b84;font-size:1rem}
+.tabs{display:grid;grid-template-columns:1fr 1fr;margin-bottom:28px;border-bottom:1px solid #dfe6df}
+.tabs a{margin-bottom:-1px;padding:14px 0 15px;border-bottom:3px solid transparent;color:#7e8b84;font-weight:500;text-align:center;text-decoration:none}
+.tabs a:hover{color:#246f53}
+.tabs a[aria-current="page"]{border-bottom-color:#246f53;color:#246f53}
+.fld{display:block;margin:0 0 20px;color:#53645b;font-size:.88rem;font-weight:600}
+.fld input[type=text],.fld input[type=email],.fld input[type=password]{display:block;width:100%;height:56px;min-height:0;margin:9px 0 0;padding:0 18px;border:1px solid #e3e9e3;border-radius:12px;background:#fff;color:#293e34;font:inherit;font-size:1rem;font-weight:400}
+.fld input::placeholder{color:#9aa59f}
+.fld input:focus{border-color:#246f53;outline:2px solid rgba(36,111,83,.25);outline-offset:0}
+.fld input[aria-invalid="true"]{border-color:#c0362c}
+.fe{display:block;min-height:0;margin-top:6px;color:#c0362c;font-size:.82rem;font-weight:400}
+.fe:empty{display:none}
+.opts2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 22px;font-size:.88rem}
+.opts2 label{display:inline-flex;align-items:center;gap:10px;margin:0;color:#7e8b84;cursor:pointer}
+.opts2 input{width:18px;height:18px;min-height:0;margin:0;accent-color:#246f53}
+.linkbtn{padding:0;border:0;background:none;color:#246f53;font:inherit;font-weight:600;cursor:pointer}
+.linkbtn:hover{text-decoration:underline}
+.note2{margin:-8px 0 20px;padding:12px 14px;border:1px solid #dfe9dc;border-radius:12px;background:#f1f5f0;color:#53645b;font-size:.85rem}
+.note2[hidden]{display:none}
+.alert{min-height:0;margin:0 0 14px;color:#c0362c;font-size:.9rem}
+.alert:empty{display:none}
+.sub2{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;height:56px;border:0;border-radius:12px;background:#1e6b4f;color:#fff;font:inherit;font-size:1rem;font-weight:600;cursor:pointer}
+.sub2:hover{background:#185c43}
+.sub2:disabled{opacity:.7;cursor:progress}
+.sub2 svg{width:20px;height:20px}
+.legal{margin:34px 0 0;color:#8a958f;font-size:.78rem;text-align:center}
+.au :focus-visible{outline:2px solid #246f53;outline-offset:2px}
+
+/* ---------- small screens ---------- */
+@media(max-width:900px){
+  .split{grid-template-columns:1fr}
+  .brandp{gap:20px;padding:24px 24px 28px}
+  .bmid .lead,.feat,.bnote{display:none}
+  .bmid .ey{margin-bottom:12px}
+  .bmid h1{margin:0;font-size:clamp(2rem,8vw,2.8rem)}
+  .logo .mk{width:42px;height:42px}.logo .wd{font-size:1.6rem}
+  .formp{align-items:flex-start;padding:32px 24px 40px}
+}
+@media(max-width:420px){.badge{display:none}}

@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>LunasTech</title></head>
+<body><script>
+try { const u = JSON.parse(localStorage.getItem('user')); location.replace(localStorage.getItem('token') && u ? (u.role === 'admin' ? '/admin/' : '/customer/') : '/login.html'); }
+catch { location.replace('/login.html'); }
+</script></body></html>

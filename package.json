@@ -1,0 +1,13 @@
+{
+  "name": "lunastech",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "seed": "node --env-file=.env db/seed.js",
+    "start": "node --env-file=.env server.js",
+    "dev": "node --watch --env-file=.env server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

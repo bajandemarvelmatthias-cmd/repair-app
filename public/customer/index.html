@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LunasTech</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"><link rel="stylesheet" href="/css/customer.css"></head>
+<body class="cust">
+<div class="cs" id="cs">
+  <aside class="cnav" id="cnav" aria-label="Main menu">
+    <a class="brand" href="#home" aria-label="LunasTech home"><span class="mark" id="logo"></span><span class="word">LunasTech</span></a>
+    <p class="grp">Your repair workspace</p>
+    <nav id="nav" aria-label="Workspace"></nav>
+    <div class="promo" id="promo"></div>
+    <div class="cfoot">
+      <a class="it" href="#settings" data-k="settings" title="Settings" aria-label="Settings"></a>
+      <button class="it" id="pf" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="pop" title="Your profile"></button>
+    </div>
+  </aside>
+  <div class="cback" id="cback"></div>
+  <div class="pop" id="pop" role="dialog" aria-label="Your profile" hidden></div>
+  <div class="pop bell" id="bellpop" role="dialog" aria-label="Notifications" hidden>
+    <p><b>Notifications</b></p><p class="muted">You're all caught up.</p>
+  </div>
+  <div class="cmain">
+    <header class="tb">
+      <button class="ibtn" id="tg" type="button" aria-controls="cnav" aria-expanded="true" aria-label="Close menu" title="Menu"></button>
+      <div class="crumb" id="crumb"></div>
+      <div class="sp"></div>
+      <label class="srch"><span id="sicon"></span><input id="sq" type="search" placeholder="Search guides, devices..." aria-label="Search guides and devices" autocomplete="off"><kbd id="kb"></kbd></label>
+      <button class="ibtn bell" id="bl" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="bellpop" aria-label="Notifications"></button>
+      <span class="vr"></span>
+      <button class="avbtn" id="av" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="pop" aria-label="Your profile"></button>
+    </header>
+    <main class="page" id="view"></main>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script>
+const me = API.guard('customer');
+let active = null, level = '';
+const POPS = { pf: ['#pop', 'dock'], av: ['#pop', 'top'], bl: ['#bellpop', 'bell'] };
+
+/* ---------- icons ---------- */
+const I = {
+  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+  book: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/>',
+  cube: '<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
+  pulse: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
+  bookmark: '<path d="M6.5 3.5h11v17L12 16.5l-5.5 4z"/>',
+  chart: '<path d="M4 4v16h16"/><path d="M8.5 16v-4M12.5 16V8M16.5 16v-6"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  bolt: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  tools: '<path d="M4 20l8.5-8.5"/><path d="M12.5 11.5 10.5 9.5l4-4 3-.5.5 3-4 4z"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15z"/><path d="M10 21h4"/>',
+  chev: '<path d="m9 5 7 7-7 7"/>',
+  arrow: '<path d="M4 12h15M13 6l6 6-6 6"/>',
+  arrowUR: '<path d="M7 17 17 7M9 7h8v8"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>',
+  laptop: '<rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 19h19"/>',
+  tablet: '<rect x="4.5" y="3" width="15" height="18" rx="2.2"/><path d="M11 18h2"/>',
+  gamepad: '<path d="M7 8h10a4.5 4.5 0 0 1 4.4 5.4l-.7 3.3a2.4 2.4 0 0 1-4 1.2L14.5 16h-5l-2.2 2a2.4 2.4 0 0 1-4-1.2l-.7-3.3A4.5 4.5 0 0 1 7 8z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/>',
+  device: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M8 20h8"/>',
+  panel: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>'
+};
+const S = (n, c = '') => `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+const catIcon = (name) => { const n = String(name).toLowerCase(); return /phone/.test(n) ? 'phone' : /laptop|computer/.test(n) ? 'laptop' : /tablet/.test(n) ? 'tablet' : /console|game/.test(n) ? 'gamepad' : 'device'; };
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const DIFF = { beginner: 'Easy', intermediate: 'Moderate', advanced: 'Advanced' };
+
+/* ---------- shell ---------- */
+const NAV = [['home', 'Overview', 'grid'], ['guides', 'Repair Guides', 'book'], ['practice', 'Simulations', 'cube'], ['diagnose', 'Device Diagnosis', 'pulse'], ['saved', 'Saved Guides', 'bookmark'], ['progress', 'My Progress', 'chart']];
+const TITLES = Object.fromEntries(NAV.map(([k, l]) => [k, l])); TITLES.settings = 'Settings';
+
+$('#logo').innerHTML = S('tools');
+$('#nav').innerHTML = NAV.map(([k, l, ic]) => `<a class="it" href="#${k}" data-k="${k}" title="${l}" aria-label="${l}">${S(ic)}<span class="lb">${l}</span></a>`).join('');
+$('#promo').innerHTML = `${S('bolt')}<b>A little practice.</b><p>A few minutes in a simulation builds real repair confidence.</p><a href="#practice">Try a simulation</a>`;
+$('[data-k="settings"]').innerHTML = S('gear') + '<span class="lb">Settings</span>';
+$('#tg').innerHTML = S('panel');
+$('#sicon').innerHTML = S('search');
+$('#bl').innerHTML = S('bell');
+$('#kb').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '\u2318 K' : 'Ctrl K';
+
+// Slide menu: open shows icons + names, closed shows icons only.
+const shell = $('#cs'), mq = matchMedia('(max-width:760px)');
+const wantOpen = () => !mq.matches && localStorage.getItem('cmenu') !== 'closed';
+function setOpen(open, persist) {
+  shell.classList.toggle('open', open);
+  $('#tg').setAttribute('aria-expanded', open);
+  $('#tg').setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  if (persist && !mq.matches) localStorage.setItem('cmenu', open ? 'open' : 'closed');
+  closePops();
+}
+setOpen(wantOpen(), false);
+requestAnimationFrame(() => requestAnimationFrame(() => shell.classList.add('ready')));
+mq.onchange = () => setOpen(wantOpen(), false);
+$('#tg').onclick = () => setOpen(!shell.classList.contains('open'), true);
+$('#cback').onclick = () => setOpen(false, false);
+$('#cnav').addEventListener('click', (e) => { if (mq.matches && e.target.closest('a')) setOpen(false, false); });
+
+// Profile (bottom of menu and top-right avatar) and notifications.
+const initials = (n) => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+function closePops() {
+  $('#pop').hidden = true; $('#bellpop').hidden = true;
+  Object.keys(POPS).forEach((id) => $('#' + id).setAttribute('aria-expanded', 'false'));
+  active = null;
+}
+function togglePop(id) {
+  const was = active === id; closePops(); if (was) return;
+  const [sel, cls] = POPS[id], el = $(sel);
+  el.className = 'pop ' + cls; el.hidden = false;
+  $('#' + id).setAttribute('aria-expanded', 'true'); active = id;
+  if (sel === '#pop') loadLevel();
+}
+Object.keys(POPS).forEach((id) => ($('#' + id).onclick = (e) => { e.stopPropagation(); togglePop(id); }));
+document.addEventListener('click', (e) => { if (!e.target.closest('.pop')) closePops(); });
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#sq').focus(); return; }
+  if (e.key !== 'Escape') return;
+  if (active) { const t = $('#' + active); closePops(); t.focus(); }
+  else if (mq.matches && shell.classList.contains('open')) setOpen(false, false);
+});
+function drawProfile() {
+  const ini = initials(me.full_name);
+  $('#pf').innerHTML = `<span class="av">${esc(ini)}</span><span class="who lb"><span>${esc(me.full_name)}</span><small>${esc(level || 'Learner')}</small></span>`;
+  $('#av').textContent = ini;
+  $('#pop').innerHTML = `<p><b>${esc(me.full_name)}</b></p><p class="muted">${esc(me.email)}</p><p class="muted">Level: ${esc(level || '...')}</p>
+    <button class="ghost" type="button" onclick="API.logout()">Log out</button>`;
+}
+async function loadLevel() {
+  try { level = (await API.req('/progress')).level; } catch { /* keep the last known level */ }
+  drawProfile();
+}
+if (me) { drawProfile(); loadLevel(); }
+
+// Search: Enter opens the guides list filtered by what you typed.
+$('#sq').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim();
+  location.hash = '#guides' + (v ? '?q=' + encodeURIComponent(v) : '');
+  e.target.value = ''; e.target.blur();
+});
+
+/* ---------- router ---------- */
+const view = $('#view');
+const views = { home, diagnose, guides, practice, progress, saved, settings };
+
+async function route() {
+  const [path, qs] = location.hash.slice(1).split('?');
+  const [k0, id] = (path || 'home').split('/');
+  const k = views[k0] ? k0 : 'home';
+  document.querySelectorAll('.cnav a[data-k]').forEach((a) => {
+    const on = a.dataset.k === k; a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  $('#crumb').innerHTML = `<span class="pre">Workspace</span>${S('chev')}<b>${TITLES[k]}</b>`;
+  view.innerHTML = '<p class="muted">Loading...</p>';
+  scrollTo(0, 0);
+  try { await views[k](id, new URLSearchParams(qs || '')); }
+  catch (e) { view.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+addEventListener('hashchange', route);
+if (me) route();
+
+/* ---------- shared pieces ---------- */
+function gcard(g) {
+  return `<article class="gc">
+    <a class="gc-media" href="#guides/${g.id}" tabindex="-1" aria-hidden="true">${S(catIcon(g.category), 'fb')}<img src="/img/guides/${g.id}.jpg" alt="" loading="lazy" onerror="this.remove()"><span class="diff ${esc(g.difficulty)}"><i></i>${esc(DIFF[g.difficulty] || g.difficulty)}</span></a>
+    <button class="bm" type="button" data-id="${g.id}" aria-pressed="${g.is_saved ? 'true' : 'false'}" aria-label="Save ${esc(g.title)}">${S('bookmark')}</button>
+    <a class="gc-body" href="#guides/${g.id}"><small>${esc(g.category)}</small><h3>${esc(g.title)}</h3>
+      <div class="gc-meta"><span>${S('clock')}${g.estimated_minutes} min</span><span>${S('tools')}${plural(g.step_count ?? 0, 'step')}</span>${S('arrow', 'go')}</div></a>
+  </article>`;
+}
+function bindSave(root, list, removeOnUnsave) {
+  root.onclick = async (e) => {
+    const b = e.target.closest('.bm'); if (!b) return;
+    const was = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', String(!was)); b.disabled = true;
+    try {
+      await API.req(`/guides/${b.dataset.id}/save`, { method: was ? 'DELETE' : 'POST' });
+      const g = list.find((x) => String(x.id) === b.dataset.id); if (g) g.is_saved = !was;
+      if (was && removeOnUnsave) {
+        b.closest('.gc').remove();
+        if (!root.children.length) root.outerHTML = '<p class="muted">No saved guides yet.</p>';
+      }
+    } catch { b.setAttribute('aria-pressed', String(was)); }
+    finally { b.disabled = false; }
+  };
+}
+
+/* ---------- Overview ---------- */
+const HERO_ART = `<svg class="art" viewBox="0 0 640 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs><pattern id="mat" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M34 0H0v34" fill="none" stroke="#9ec6d6" stroke-width="2"/></pattern></defs>
+  <rect width="640" height="560" fill="#7eb2c9"/><rect width="640" height="560" fill="url(#mat)" opacity=".6"/>
+  <rect x="330" y="80" width="170" height="350" rx="30" fill="#2c3238"/><rect x="341" y="91" width="148" height="328" rx="22" fill="#3a4148"/>
+  <circle cx="415" cy="250" r="52" fill="#2a2f34"/><circle cx="415" cy="250" r="34" fill="#343a40"/>
+  <rect x="365" y="108" width="34" height="34" rx="9" fill="#2a2f34"/><circle cx="382" cy="125" r="9" fill="#4a5158"/>
+  <rect x="80" y="240" width="140" height="200" rx="9" fill="#434950"/><rect x="96" y="260" width="108" height="16" rx="3" fill="#5c636a"/><rect x="96" y="290" width="108" height="130" rx="6" fill="#4d545b"/>
+  <rect x="246" y="120" width="70" height="220" rx="9" fill="#46554d"/><rect x="258" y="136" width="22" height="22" rx="3" fill="#232a26"/><rect x="286" y="136" width="18" height="14" rx="3" fill="#6d7d73"/><rect x="258" y="180" width="46" height="30" rx="3" fill="#2a322d"/><rect x="258" y="232" width="18" height="18" rx="3" fill="#6d7d73"/>
+  <g fill="#c9ced2"><circle cx="270" cy="400" r="6"/><circle cx="298" cy="412" r="6"/><circle cx="244" cy="418" r="6"/><circle cx="560" cy="150" r="7"/><circle cx="560" cy="190" r="7"/></g>
+  <line x1="300" y1="500" x2="430" y2="318" stroke="#9aa1a7" stroke-width="9" stroke-linecap="round"/><line x1="268" y1="544" x2="318" y2="474" stroke="#e8eaec" stroke-width="20" stroke-linecap="round"/>
+</svg>`;
+
+const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
+
+async function home() {
+  const [p, cats, list] = await Promise.all([API.req('/progress'), API.req('/catalog/categories'), API.req('/guides')]);
+  const first = me.full_name.split(' ')[0];
+  const pick = [], seen = new Set();
+  for (const g of list) if (!seen.has(g.device_category_id)) { seen.add(g.device_category_id); pick.push(g); }
+  for (const g of list) if (pick.length < 3 && !pick.includes(g)) pick.push(g);
+  const popular = pick.slice(0, 3);
+
+  view.innerHTML = `
+  <p class="eyebrow">Learn. Diagnose. Repair.</p>
+  <div class="greet"><div><h1 class="hello">${greeting()}, ${esc(first)}<i>.</i></h1><p class="sub">A little curiosity is all it takes. What will you fix today?</p></div>
+    <span class="chip"><i></i>Customer workspace</span></div>
+
+  <section class="spot" aria-label="Welcome">
+    <div class="hero-txt">
+      <span class="tag"><i></i>Built for hands-on learners</span>
+      <h2>Don't just replace it.<br>Learn to <i class="g">repair it.</i></h2>
+      <p class="lead">Explore step-by-step guides, practice in a safe simulation, and make smarter decisions about your devices.</p>
+      <div class="acts"><a class="cta" href="#guides">Explore repair guides ${S('arrow')}</a><a class="lnk" href="#practice">${S('play')}Try a simulation</a></div>
+      <div class="crowd"><span class="s"><b style="background:#e9d9c3">JL</b><b style="background:#cfe0d6">AM</b><b style="background:#efc9bd">RC</b></span>A community of curious minds. A world of repair.</div>
+    </div>
+    <div class="hero-img">${HERO_ART}<img src="/img/hero.jpg" alt="" onerror="this.remove()">
+      <div class="hero-note"><span class="ic">${S('tools')}</span><div><b>Small fixes. Big impact.</b><span>Better for your device. Better for the planet.</span></div></div></div>
+  </section>
+
+  <div class="stats">
+    <a class="sc" href="#guides"><span class="ico t-g">${S('book')}</span><div><small>Repair guides</small><span class="n">${list.length}<em>ready to explore</em></span></div></a>
+    <a class="sc" href="#practice"><span class="ico t-b">${S('cube')}</span><div><small>Simulations completed</small><span class="n">${p.simulations_completed}<em>keep it going</em></span></div></a>
+    <a class="sc" href="#saved"><span class="ico t-o">${S('bookmark')}</span><div><small>Saved guides</small><span class="n">${p.saved_guides}<em>in your collection</em></span></div></a>
+    <a class="sc" href="#progress"><span class="ico t-p">${S('chart')}</span><div><small>Your learning level</small><span class="n lv">${esc(p.level)}${S('arrowUR')}</span></div></a>
+  </div>
+
+  <div class="sec"><div><h2>What are you working on?</h2><p>Pick a device and find your starting point.</p></div><a class="more" href="#guides">Browse all devices ${S('arrow')}</a></div>
+  <div class="cats">${cats.map((c) => {
+    const n = list.filter((g) => g.device_category_id === c.id).length;
+    return `<a class="cat" href="#guides?c=${c.id}">${S(catIcon(c.name))}<div><b>${esc(/s$/i.test(c.name) ? c.name : c.name + 's')}</b><small>${plural(n, 'guide')}</small></div>${S('chev')}</a>`;
+  }).join('')}</div>
+
+  <div class="sec"><div><h2>A good place to start <span class="pillg">Popular guides</span></h2><p>Practical repairs. Clear steps. Real confidence.</p></div><a class="more" href="#guides">View all guides ${S('arrow')}</a></div>
+  <div class="gg" id="pg">${popular.map(gcard).join('') || '<p class="muted">No guides published yet.</p>'}</div>
+
+  <div class="diag"><span class="ico">${S('pulse')}</span><div class="t"><b>Not sure what's wrong? Start with a diagnosis.</b><span>Tell us the symptoms. We'll help you find the next best step.</span></div>
+    <a class="go" href="#diagnose">Diagnose my device ${S('arrow')}</a></div>
+  <footer class="foot"><span>Made for curious minds. Built for a more repairable world.</span><span>LunasTech &nbsp;&middot;&nbsp; Learn to fix. Fix to learn.</span></footer>`;
+  bindSave($('#pg'), list);
+}
+
+/* ---------- Guides ---------- */
+async function guides(id, params) {
+  if (id) return guide(id);
+  const [list, cats] = await Promise.all([API.req('/guides'), API.req('/catalog/categories')]);
+  let q = params.get('q') || '', c = params.get('c') || '';
+  view.innerHTML = `<h1>Repair guides</h1><p class="sub">Practical repairs. Clear steps. Real confidence.</p>
+    <div class="filters"><label class="srch">${S('search')}<input id="q" type="search" placeholder="Search guides" aria-label="Search guides" value="${esc(q)}"></label>
+    <div class="chips" id="chips"></div></div><div class="gg" id="gl"></div>`;
+  const chips = () => {
+    $('#chips').innerHTML = [['', 'All'], ...cats.map((x) => [String(x.id), x.name])].map(([v, l]) => `<button type="button" data-c="${v}" aria-pressed="${c === v}">${esc(l)}</button>`).join('');
+  };
+  const draw = () => {
+    const items = list.filter((g) => (!c || String(g.device_category_id) === c) && `${g.title} ${g.summary} ${g.category}`.toLowerCase().includes(q.toLowerCase()));
+    $('#gl').innerHTML = items.map(gcard).join('') || '<p class="muted">No guides match. Try a different search or device type.</p>';
+  };
+  chips(); draw(); bindSave($('#gl'), list);
+  $('#q').oninput = () => { q = $('#q').value; draw(); };
+  $('#chips').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; c = b.dataset.c; chips(); draw(); };
+}
+
+async function guide(id) {
+  const g = await API.req('/guides/' + id);
+  view.innerHTML = `<a class="back" href="#guides"><span style="display:inline-flex;transform:rotate(180deg)">${S('arrow')}</span>Back to guides</a>
+    <h1>${esc(g.title)}</h1>
+    <div class="metas"><span class="pill">${esc(g.category)}</span><span class="diff ${esc(g.difficulty)}" style="position:static"><i></i>${esc(DIFF[g.difficulty] || g.difficulty)}</span><span class="pill">about ${g.estimated_minutes} min</span><span class="pill">Tools: ${esc(g.tools || 'none')}</span></div>
+    <p>${esc(g.summary)}</p>
+    <button class="ghost" id="sv" type="button">${g.is_saved ? 'Remove from saved' : 'Save guide'}</button>
+    <h3>Steps</h3>
+    ${g.steps.map((s) => `<div class="step"><span class="no">${s.step_number}</span><div><b>${esc(s.title)}</b><p>${esc(s.instruction)}</p>${s.caution ? `<p class="note">Caution: ${esc(s.caution)}</p>` : ''}</div></div>`).join('')}
+    ${g.simulations.map((s) => `<a class="card act" href="#practice/${s.id}"><b>Practice: ${esc(s.title)}</b></a>`).join('')}`;
+  $('#sv').onclick = async () => { await API.req(`/guides/${id}/save`, { method: g.is_saved ? 'DELETE' : 'POST' }); guide(id); };
+}
+
+async function saved() {
+  const list = await API.req('/guides/saved');
+  view.innerHTML = `<h1>Saved guides</h1><p class="sub">Your collection, ready when you need it.</p>
+    ${list.length ? `<div class="gg" id="gl">${list.map(gcard).join('')}</div>` : `<div class="card"><p>You haven't saved any guides yet. Tap the bookmark on a guide to keep it here.</p><a class="cta" href="#guides">Browse repair guides</a></div>`}`;
+  if (list.length) bindSave($('#gl'), list, true);
+}
+
+/* ---------- Diagnose ---------- */
+async function diagnose(pre) {
+  const cats = await API.req('/catalog/categories');
+  view.innerHTML = `<h1>Device diagnosis</h1><p class="sub">Tell us the symptoms. We'll help you find the next best step.</p><div class="card">
+    <label>Device type<select id="c"><option value="">Choose a type</option>${cats.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label>
+    <label>Model (optional)<select id="d"></select></label>
+    <label>Symptom<select id="s"></select></label>
+    <button class="btn" id="go">Check symptom</button></div><div id="out"></div>`;
+  $('#c').onchange = async () => {
+    const id = $('#c').value;
+    if (!id) { $('#d').innerHTML = ''; $('#s').innerHTML = ''; return; }
+    const [d, s] = await Promise.all([API.req('/catalog/devices?category_id=' + id), API.req('/catalog/symptoms?category_id=' + id)]);
+    $('#d').innerHTML = '<option value="">Not listed</option>' + d.map((x) => `<option value="${x.id}">${esc(x.brand + ' ' + x.model)}</option>`).join('');
+    $('#s').innerHTML = s.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  };
+  if (pre) { $('#c').value = pre; $('#c').onchange(); }
+  $('#go').onclick = async () => {
+    if (!$('#c').value || !$('#s').value) { $('#out').innerHTML = '<p class="err">Choose a device type and a symptom.</p>'; return; }
+    try {
+      const r = await API.req('/assessments', { method: 'POST', body: { category_id: +$('#c').value, device_id: $('#d').value ? +$('#d').value : undefined, symptom_id: +$('#s').value } });
+      $('#out').innerHTML = `<section class="card"><span class="pill ${r.severity}">${r.severity} concern</span>
+        <h2>${esc(r.symptom.name)}</h2><p>${esc(r.advice)}</p>
+        <h3>Possible areas of concern</h3><ul>${r.areas_of_concern.map((a) => `<li>${esc(a.area)} <span class="pill ${a.severity}">${a.severity}</span></li>`).join('') || '<li class="muted">No specific area found.</li>'}</ul>
+        <h3>Suggested next steps</h3><ol>${r.suggested_next_steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+        <h3>Relevant guides</h3>${r.relevant_guides.map((g) => `<a class="card act" href="#guides/${g.id}"><b>${esc(g.title)}</b><br><span class="muted">${esc(g.difficulty)}, about ${g.estimated_minutes} min</span></a>`).join('') || '<p class="muted">No guide yet for this symptom.</p>'}
+        <p class="muted">${esc(r.disclaimer)}</p></section>`;
+    } catch (e) { $('#out').innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  };
+}
+
+/* ---------- Simulations ---------- */
+async function practice(id) {
+  if (id) return run(id);
+  const list = await API.req('/simulations');
+  view.innerHTML = `<h1>Simulations</h1><p class="sub">Practice in a safe simulation before you pick up a tool.</p>${list.map((s) => `<a class="card act" href="#practice/${s.id}"><b>${esc(s.title)}</b><br><span class="muted">${esc(s.difficulty)}, ${s.step_count} steps, best ${s.best_score ?? '-'} / ${s.max_score}</span><p>${esc(s.description)}</p></a>`).join('') || '<p class="muted">No simulations yet.</p>'}`;
+}
+
+async function run(id) {
+  const [sim, st] = await Promise.all([API.req('/simulations/' + id), API.req(`/simulations/${id}/start`, { method: 'POST' })]);
+  const a = st.attempt, done = new Set(st.answered_step_ids), steps = sim.steps.filter((s) => !done.has(s.id));
+  let i = 0;
+  const show = () => {
+    const s = steps[i];
+    view.innerHTML = `<a class="back" href="#practice"><span style="display:inline-flex;transform:rotate(180deg)">${S('arrow')}</span>Back</a><h1>${esc(sim.title)}</h1><p class="muted">Step ${done.size + i + 1} of ${sim.steps.length}</p>
+      <section class="card"><p>${esc(s.scenario)}</p><h2>${esc(s.question)}</h2>
+      <div class="opts">${s.options.map((o, n) => `<button class="opt" data-n="${n}">${esc(o)}</button>`).join('')}</div><div id="fb"></div></section>`;
+    const opts = [...view.querySelectorAll('.opt')];
+    opts.forEach((b) => (b.onclick = async () => {
+      opts.forEach((x) => (x.disabled = true));
+      try {
+        const r = await API.req(`/simulations/attempts/${a.id}/respond`, { method: 'POST', body: { step_id: s.id, selected_index: +b.dataset.n } });
+        b.classList.add(r.is_correct ? 'ok' : 'bad'); opts[r.correct_index].classList.add('ok');
+        $('#fb').innerHTML = `<p class="${r.is_correct ? 'good' : 'err'}">${esc(r.feedback || '')}</p><button class="btn" id="nx">${r.completed ? 'See results' : 'Next step'}</button>`;
+        $('#nx').onclick = () => { if (r.completed) return finish(sim, r); i++; show(); };
+      } catch (e) { $('#fb').innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+    }));
+  };
+  if (!steps.length) { view.innerHTML = '<p class="muted">Nothing left to answer.</p>'; return; }
+  show();
+}
+
+function finish(sim, r) {
+  view.innerHTML = `<h1>Results</h1><section class="card"><p class="muted">${esc(sim.title)}</p>
+    <p class="stat">${r.result.percentage}%</p><p>${r.score} of ${r.max_score} points</p>
+    <p class="muted">Level: ${esc(r.progress.level)}, total ${r.progress.total_points} points</p>
+    <a class="btn" style="display:inline-block;text-decoration:none;line-height:28px;color:#fff" href="#practice">More simulations</a></section>`;
+  loadLevel();
+}
+
+/* ---------- Progress ---------- */
+async function progress() {
+  const [p, at, sv, hist] = await Promise.all([API.req('/progress'), API.req('/simulations/attempts/mine'), API.req('/guides/saved'), API.req('/assessments')]);
+  const list = (arr, fn, empty) => arr.map(fn).join('') || `<p class="muted">${empty}</p>`;
+  view.innerHTML = `<h1>My progress</h1><p class="sub">Your learning level, simulation records and diagnosis history.</p>
+    <div class="grid"><div class="card"><span class="stat">${esc(p.level)}</span><br><span class="muted">${p.total_points} points</span></div>
+    <div class="card"><span class="stat">${p.simulations_completed}</span><br><span class="muted">simulations completed</span></div>
+    <div class="card"><span class="stat">${p.assessments_done}</span><br><span class="muted">diagnoses</span></div></div>
+    <h3>Simulation records</h3><div class="card">${list(at, (x) => `<div class="row"><div>${esc(x.title)}<br><span class="muted">${esc(x.completed_at || 'in progress')}</span></div><b>${x.score}/${x.max_score}</b></div>`, 'No attempts yet.')}</div>
+    <h3>Saved guides</h3><div class="card">${list(sv, (g) => `<div class="row"><a href="#guides/${g.id}">${esc(g.title)}</a></div>`, 'No saved guides.')}</div>
+    <h3>Diagnosis history</h3><div class="card">${list(hist, (h) => `<div class="row"><div>${esc(h.symptom)}<br><span class="muted">${esc(h.category)}, ${esc(h.created_at)}</span></div><span class="pill ${h.severity}">${h.severity}</span></div>`, 'No diagnoses yet.')}</div>`;
+}
+
+/* ---------- Settings ---------- */
+async function settings() {
+  view.innerHTML = `<h1>Settings</h1><p class="sub">Update your name and password.</p>
+    <form class="card" id="pfm" novalidate><h2>Your name</h2>
+      <label>Full name<input name="full_name" autocomplete="name" value="${esc(me.full_name)}" required><span class="fe" data-f="full_name"></span></label>
+      <label>Email<input value="${esc(me.email)}" disabled></label>
+      <p class="msg" role="status" id="m1"></p><button class="btn">Save name</button></form>
+    <form class="card" id="pwm" novalidate><h2>Change password</h2>
+      <label>Current password<input type="password" name="current_password" autocomplete="current-password" required><span class="fe" data-f="current_password"></span></label>
+      <label>New password<input type="password" name="new_password" autocomplete="new-password" required><span class="fe" data-f="new_password"></span></label>
+      <label>Confirm new password<input type="password" name="confirm_password" autocomplete="new-password" required><span class="fe" data-f="confirm_password"></span></label>
+      <p class="msg" role="status" id="m2"></p><button class="btn">Update password</button></form>`;
+
+  const wire = (formId, msgId, path, method, okText, onOk) => {
+    const form = $(formId), msg = $(msgId);
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      form.querySelectorAll('.fe').forEach((x) => (x.textContent = ''));
+      msg.className = 'msg'; msg.textContent = '';
+      try {
+        const d = await API.req(path, { method, body: Object.fromEntries(new FormData(form)) });
+        msg.className = 'msg good'; msg.textContent = okText;
+        onOk(d, form);
+      } catch (err) {
+        for (const [f, t] of Object.entries(err.details || {})) { const el = form.querySelector(`[data-f="${f}"]`); if (el) el.textContent = t; }
+        msg.className = 'msg err'; msg.textContent = err.message;
+      }
+    };
+  };
+  wire('#pfm', '#m1', '/auth/profile', 'PATCH', 'Name saved.', (d) => {
+    me.full_name = d.user.full_name;
+    localStorage.setItem('user', JSON.stringify({ ...API.user(), full_name: d.user.full_name }));
+    drawProfile();
+  });
+  wire('#pwm', '#m2', '/auth/password', 'POST', 'Password updated.', (d, form) => form.reset());
+}
+</script></body></html>
