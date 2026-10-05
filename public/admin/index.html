@@ -1,53 +1,170 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LunasTech Admin</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"></head>
-<body><div class="shell">
-<aside class="side"><b>LunasTech Admin</b><span id="nav" style="display:contents"></span><button class="ghost sm" onclick="API.logout()">Log out</button></aside>
-<main class="wide" id="view"></main></div>
+<title>LunasTech Admin</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"><link rel="stylesheet" href="/css/customer.css">
+<style>
+/* Admin additions on top of the shared LunasTech (customer) theme */
+.stats{grid-template-columns:repeat(auto-fit,minmax(185px,1fr))}
+.cs .grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.cs .card{padding:20px}
+.cs .card h2{margin-top:0}
+.cs h3{margin:28px 0 12px;font-size:1.1rem;letter-spacing:-.02em;font-weight:600}
+.cs .row b{font-weight:600}
+.cs .btn:hover{background:#185c43}
+.cs .ghost:hover{border-color:var(--ac);color:var(--ac)}
+.cs .ghost[disabled]{opacity:.5;cursor:not-allowed}
+.cs label{color:var(--mut)}
+.cs input:focus,.cs select:focus,.cs textarea:focus{border-color:var(--ac)}
+.cs .note-box{padding:16px 18px;border:1px solid #e1e9dc;border-radius:var(--r);background:#f0f4ea;color:var(--mut);margin-bottom:12px}
+</style></head>
+
+<body class="cust">
+<div class="cs" id="cs">
+  <aside class="cnav" id="cnav" aria-label="Main menu">
+    <a class="brand" href="#overview" aria-label="LunasTech admin home"><span class="mark" id="logo"></span><span class="word">LunasTech</span></a>
+    <p class="grp">Admin console</p>
+    <nav id="nav" aria-label="Admin"></nav>
+    <div class="cfoot">
+      <button class="it" id="pf" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="pop" title="Your profile"></button>
+    </div>
+  </aside>
+  <div class="cback" id="cback"></div>
+  <div class="pop" id="pop" role="dialog" aria-label="Your profile" hidden></div>
+  <div class="cmain">
+    <header class="tb">
+      <button class="ibtn" id="tg" type="button" aria-controls="cnav" aria-expanded="true" aria-label="Close menu" title="Menu"></button>
+      <div class="crumb" id="crumb"></div>
+      <div class="sp"></div>
+      <span class="chip"><i></i>Administrator</span>
+      <span class="vr"></span>
+      <button class="avbtn" id="av" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="pop" aria-label="Your profile"></button>
+    </header>
+    <main class="page" id="view"></main>
+  </div>
+</div>
 <script src="/js/api.js"></script>
 <script>
 const me = API.guard('admin');
 const view = $('#view');
 const SEV = ['low', 'medium', 'high'];
-const S = {
-  categories: { t: 'Categories', ep: '/admin/categories', f: [['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r) => r.description },
-  devices: { t: 'Devices', ep: '/admin/devices', f: [['category_id', 'Category', 'cat'], ['brand', 'Brand'], ['model', 'Model']], show: (r) => r.brand + ' ' + r.model, sub: (r, m) => m.cat[r.category_id] },
-  symptoms: { t: 'Symptoms', ep: '/admin/symptoms', f: [['category_id', 'Category (none = all devices)', 'cat'], ['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r, m) => m.cat[r.category_id] || 'All devices' },
-  rules: { t: 'Rules', ep: '/admin/rules', f: [['symptom_id', 'Symptom', 'sym'], ['area_of_concern', 'Area of concern'], ['severity', 'Severity', 'sev'], ['next_steps', 'Next steps', 'long'], ['priority', 'Priority', 'num']], show: (r) => r.area_of_concern, sub: (r, m) => 'For: ' + m.sym[r.symptom_id], pill: (r) => r.severity },
-  guides: { t: 'Guides', ep: '/admin/guides', pub: 1, show: (r) => r.title, sub: (r) => `${r.category}, ${r.step_count} steps` },
-  simulations: { t: 'Simulations', ep: '/admin/simulations', pub: 1, show: (r) => r.title, sub: (r) => `${r.step_count} steps` }
-};
-const items = [['overview', 'Overview'], ['users', 'Users'], ...Object.entries(S).map(([k, v]) => [k, v.t])];
-$('#nav').innerHTML = items.map(([k, l]) => `<a href="#${k}" data-k="${k}">${l}</a>`).join('');
+let active = null;
+const POPS = { pf: ['#pop', 'dock'], av: ['#pop', 'top'] };
 
+/* ---------- icons (same style as the customer dashboard) ---------- */
+const I = {
+  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+  users: '<circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 5.2a3.4 3.4 0 0 1 0 6.6M18.5 14.4c1.9.8 3 2.7 3 5.6"/>',
+  layers: '<path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/>',
+  device: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M8 20h8"/>',
+  pulse: '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',
+  list: '<path d="M8.5 6.5H20M8.5 12H20M8.5 17.5H20"/><circle cx="4.5" cy="6.5" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="17.5" r="1"/>',
+  book: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/>',
+  cube: '<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
+  tools: '<path d="M4 20l8.5-8.5"/><path d="M12.5 11.5 10.5 9.5l4-4 3-.5.5 3-4 4z"/>',
+  chev: '<path d="m9 5 7 7-7 7"/>',
+  check: '<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/>',
+  panel: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>'
+};
+const S_ICON = (n, c = '') => `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+
+const S = {
+  categories: { t: 'Categories', ic: 'layers', ep: '/admin/categories', f: [['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r) => r.description },
+  devices: { t: 'Devices', ic: 'device', ep: '/admin/devices', f: [['category_id', 'Category', 'cat'], ['brand', 'Brand'], ['model', 'Model']], show: (r) => r.brand + ' ' + r.model, sub: (r, m) => m.cat[r.category_id] },
+  symptoms: { t: 'Symptoms', ic: 'pulse', ep: '/admin/symptoms', f: [['category_id', 'Category (none = all devices)', 'cat'], ['name', 'Name'], ['description', 'Description']], show: (r) => r.name, sub: (r, m) => m.cat[r.category_id] || 'All devices' },
+  rules: { t: 'Rules', ic: 'list', ep: '/admin/rules', f: [['symptom_id', 'Symptom', 'sym'], ['area_of_concern', 'Area of concern'], ['severity', 'Severity', 'sev'], ['next_steps', 'Next steps', 'long'], ['priority', 'Priority', 'num']], show: (r) => r.area_of_concern, sub: (r, m) => 'For: ' + m.sym[r.symptom_id], pill: (r) => r.severity },
+  guides: { t: 'Guides', ic: 'book', ep: '/admin/guides', pub: 1, show: (r) => r.title, sub: (r) => `${r.category}, ${r.step_count} steps` },
+  simulations: { t: 'Simulations', ic: 'cube', ep: '/admin/simulations', pub: 1, show: (r) => r.title, sub: (r) => `${r.step_count} steps` }
+};
+const NAV = [['overview', 'Overview', 'grid'], ['users', 'Users', 'users'], ...Object.entries(S).map(([k, v]) => [k, v.t, v.ic])];
+const TITLES = Object.fromEntries(NAV.map(([k, l]) => [k, l]));
+
+/* ---------- shell ---------- */
+$('#logo').innerHTML = S_ICON('tools');
+$('#tg').innerHTML = S_ICON('panel');
+$('#nav').innerHTML = NAV.map(([k, l, ic]) => `<a class="it" href="#${k}" data-k="${k}" title="${l}" aria-label="${l}">${S_ICON(ic)}<span class="lb">${l}</span></a>`).join('');
+
+// Slide menu: open shows icons + names, closed shows icons only.
+const shell = $('#cs'), mq = matchMedia('(max-width:760px)');
+const wantOpen = () => !mq.matches && localStorage.getItem('cmenu') !== 'closed';
+function setOpen(open, persist) {
+  shell.classList.toggle('open', open);
+  $('#tg').setAttribute('aria-expanded', open);
+  $('#tg').setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  if (persist && !mq.matches) localStorage.setItem('cmenu', open ? 'open' : 'closed');
+  closePops();
+}
+setOpen(wantOpen(), false);
+requestAnimationFrame(() => requestAnimationFrame(() => shell.classList.add('ready')));
+mq.onchange = () => setOpen(wantOpen(), false);
+$('#tg').onclick = () => setOpen(!shell.classList.contains('open'), true);
+$('#cback').onclick = () => setOpen(false, false);
+$('#cnav').addEventListener('click', (e) => { if (mq.matches && e.target.closest('a')) setOpen(false, false); });
+
+// Profile menu (bottom of the sidebar and top-right avatar).
+const initials = (n) => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+function closePops() {
+  $('#pop').hidden = true;
+  Object.keys(POPS).forEach((id) => $('#' + id).setAttribute('aria-expanded', 'false'));
+  active = null;
+}
+function togglePop(id) {
+  const was = active === id; closePops(); if (was) return;
+  const [sel, cls] = POPS[id], el = $(sel);
+  el.className = 'pop ' + cls; el.hidden = false;
+  $('#' + id).setAttribute('aria-expanded', 'true'); active = id;
+}
+Object.keys(POPS).forEach((id) => ($('#' + id).onclick = (e) => { e.stopPropagation(); togglePop(id); }));
+document.addEventListener('click', (e) => { if (!e.target.closest('.pop')) closePops(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (active) { const t = $('#' + active); closePops(); t.focus(); }
+  else if (mq.matches && shell.classList.contains('open')) setOpen(false, false);
+});
+if (me) {
+  const ini = initials(me.full_name);
+  $('#pf').innerHTML = `<span class="av">${esc(ini)}</span><span class="who lb"><span>${esc(me.full_name)}</span><small>Administrator</small></span>`;
+  $('#av').textContent = ini;
+  $('#pop').innerHTML = `<p><b>${esc(me.full_name)}</b></p><p class="muted">${esc(me.email)}</p><p class="muted">Role: Administrator</p>
+    <button class="ghost" type="button" onclick="API.logout()">Log out</button>`;
+}
+
+/* ---------- router ---------- */
 async function route() {
-  const k = location.hash.slice(1) || 'overview';
-  document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.k === k));
+  const k = TITLES[location.hash.slice(1)] ? location.hash.slice(1) : 'overview';
+  document.querySelectorAll('.cnav a[data-k]').forEach((a) => {
+    const on = a.dataset.k === k; a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  $('#crumb').innerHTML = `<span class="pre">Admin</span>${S_ICON('chev')}<b>${TITLES[k]}</b>`;
   view.innerHTML = '<p class="muted">Loading...</p>';
+  scrollTo(0, 0);
   try { await (k === 'users' ? users : S[k] ? manage(k) : overview)(); }
   catch (e) { view.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
 addEventListener('hashchange', route);
 if (me) route();
 
+const head = (title, sub) => `<p class="eyebrow">Admin console</p><h1>${title}</h1><p class="sub">${sub}</p>`;
+
 async function overview() {
   const s = await API.req('/admin/stats');
-  const stat = (n, l) => `<div class="card"><span class="stat">${n}</span><br><span class="muted">${l}</span></div>`;
-  view.innerHTML = `<h1>Overview</h1><div class="grid">
-    ${stat(s.users.customers, 'customers')}${stat(s.content.guides, 'guides')}${stat(s.content.simulations, 'simulations')}
-    ${stat(s.activity.assessments, 'diagnoses')}${stat(s.activity.completed_attempts + ' / ' + s.activity.attempts, 'simulations completed')}</div>
+  const stat = (n, l, ic, tone) => `<div class="sc"><span class="ico ${tone}">${S_ICON(ic)}</span><div><small>${l}</small><span class="n">${n}</span></div></div>`;
+  view.innerHTML = `${head('Overview', 'A quick look at learners, content and activity.')}
+    <div class="stats">
+      ${stat(s.users.customers, 'Customers', 'users', 't-g')}${stat(s.content.guides, 'Guides', 'book', 't-b')}${stat(s.content.simulations, 'Simulations', 'cube', 't-o')}
+      ${stat(s.activity.assessments, 'Diagnoses', 'pulse', 't-p')}${stat(s.activity.completed_attempts + ' / ' + s.activity.attempts, 'Simulations completed', 'check', 't-g')}
+    </div>
     <h3>Simulation performance</h3><div class="card">${s.simulation_performance.map((x) => `<div class="row"><div>${esc(x.title)}</div><span class="muted">${x.attempts} attempts, ${x.completed || 0} completed</span><b>${x.avg_percentage ?? '-'}%</b></div>`).join('') || '<p class="muted">No data yet.</p>'}</div>
     <h3>Learner levels</h3><div class="card">${s.level_distribution.map((x) => `<div class="row"><div>${esc(x.level)}</div><b>${x.users}</b></div>`).join('') || '<p class="muted">No learners have progress yet.</p>'}</div>`;
 }
 
 async function users() {
   const list = await API.req('/admin/users');
-  view.innerHTML = `<h1>Users</h1>
+  view.innerHTML = `${head('Users', 'Add people and manage their role and access.')}
   <form class="card" id="nu"><h2>Add user</h2><div class="grid">
     <label>Full name<input name="full_name" required></label><label>Email<input type="email" name="email" required></label>
     <label>Password<input type="password" name="password" minlength="8" required></label>
     <label>Role<select name="role"><option value="customer">Customer</option><option value="admin">Admin</option></select></label></div>
-    <p class="err" id="msg" role="alert"></p><button class="btn">Add user</button></form>
+    <p class="err msg" id="msg" role="alert"></p><button class="btn">Add user</button></form>
   <div class="card">${list.map((u) => `<div class="row"><div><b>${esc(u.full_name)}</b><br><span class="muted">${esc(u.email)}, ${esc(u.level)}, ${u.total_points} pts</span></div>
     <select data-id="${u.id}" data-f="role" ${u.id === me.id ? 'disabled' : ''}><option ${u.role === 'customer' ? 'selected' : ''}>customer</option><option ${u.role === 'admin' ? 'selected' : ''}>admin</option></select>
     <button class="ghost sm" data-id="${u.id}" data-st="${u.status === 'active' ? 'disabled' : 'active'}" ${u.id === me.id ? 'disabled' : ''}>${u.status === 'active' ? 'Disable' : 'Enable'}</button></div>`).join('')}</div>`;
@@ -71,8 +188,8 @@ async function manage(k) {
     t === 'sev' ? `<select name="${n}">${SEV.map((s) => `<option>${s}</option>`).join('')}</select>` :
     t === 'long' ? `<textarea name="${n}" rows="3"></textarea>` :
     `<input name="${n}" ${t === 'num' ? 'type="number" min="1"' : ''}>`) + '</label>';
-  view.innerHTML = `<h1>${c.t}</h1>
-    ${c.f ? `<form class="card" id="nf"><h2>Add new</h2><div class="grid">${c.f.map(field).join('')}</div><p class="err" id="msg" role="alert"></p><button class="btn">Add</button></form>` : '<p class="muted">Create guides and simulations by sending steps to the admin API. A visual editor comes next.</p>'}
+  view.innerHTML = `${head(c.t, `Manage ${c.t.toLowerCase()} shown to customers.`)}
+    ${c.f ? `<form class="card" id="nf"><h2>Add new</h2><div class="grid">${c.f.map(field).join('')}</div><p class="err msg" id="msg" role="alert"></p><button class="btn">Add</button></form>` : '<div class="note-box">Create guides and simulations by sending steps to the admin API. A visual editor comes next.</div>'}
     <div class="card">${rows.map((r) => `<div class="row"><div><b>${esc(c.show(r))}</b><br><span class="muted">${esc(c.sub(r, m) || '')}</span></div>
       ${c.pill ? `<span class="pill ${c.pill(r)}">${c.pill(r)}</span>` : ''}
       ${c.pub ? `<button class="ghost sm" data-pub="${r.id}">${r.is_published ? 'Unpublish' : 'Publish'}</button>` : ''}

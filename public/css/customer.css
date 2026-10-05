@@ -180,12 +180,14 @@ body.cust{background:#f8faf8;font-family:"DM Sans","Plus Jakarta Sans",system-ui
   .hero-img::before{background:linear-gradient(180deg,var(--sage) 0,rgba(237,243,233,0) 40%)}
 }
 @media(max-width:760px){
-  .cs{--rail:68px}
-  .cnav{position:fixed;left:0;top:0;padding:20px 10px 12px}
-  .cmain{margin-left:var(--rail)}
-  .cs.open .cnav{box-shadow:8px 0 28px rgba(37,56,49,.18)}
+  /* Phone: the menu slides in over the page and is hidden by default, so the whole page is visible */
+  .cs{--rail:0px;--full:min(284px,84vw)}
+  .cnav{position:fixed;left:0;top:0;bottom:0;height:auto;width:var(--full);padding:22px 14px 14px;transform:translateX(-102%);visibility:hidden;box-shadow:none}
+  .cs.ready .cnav{transition:transform .24s ease,visibility .24s}
+  .cs.open .cnav{width:var(--full);transform:none;visibility:visible;box-shadow:8px 0 28px rgba(37,56,49,.18)}
+  .cmain{margin-left:0}
   .cs.open .cback{display:block;position:fixed;inset:0;background:rgba(37,56,49,.35);z-index:20}
-  .brand .mark{width:46px;height:46px}
+  .brand .mark{width:48px;height:48px}
   .tb{padding:0 12px;gap:6px;height:64px}
   .crumb .pre,.crumb .pre + svg,.srch kbd,.vr{display:none}
   .tb .sp{display:none}
@@ -199,4 +201,5 @@ body.cust{background:#f8faf8;font-family:"DM Sans","Plus Jakarta Sans",system-ui
   .pop.top,.pop.bell{top:70px;right:10px;width:min(250px,calc(100vw - 20px))}
 }
 @media(max-width:480px){.stats{grid-template-columns:1fr}.tb .bell{display:none}}
-@media(prefers-reduced-motion:reduce){.cs.ready .cnav{transition:none}}
+@media(max-width:760px){.tb .chip{display:none}}
+@media(prefers-reduced-motion:reduce){.cs.ready .cnav{transition:none!important}}
